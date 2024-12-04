@@ -24,7 +24,7 @@
         }
 
         .selected {
-            background-color: #ffc107;
+            background-color: #D3D3D3;
         }
     </style>
 </head>
@@ -32,6 +32,7 @@
 <body>
 
 <div class="container">
+    <br>
     <br>
     <br>
     <h1 class="my-4">Lista de Tarefas</h1>
@@ -46,22 +47,32 @@
 
     <div class="row">
         <!-- Coluna Tarefas Pendentes -->
-        <div class="col-md-6">
+        <div class="col-md-4">
             <h5>Tarefas Pendentes</h5>
             <div class="task-list" id="pendingTasks">
                 <!-- Lista de tarefas pendentes será inserida aqui -->
             </div>
-            <button id="deleteButton" class="btn btn-danger mt-3" disabled>Remover</button>
+        </div>
+
+        <!-- Coluna Tarefas em Andamento -->
+        <div class="col-md-4">
+            <h5>Tarefas em Andamento</h5>
+            <div class="task-list" id="inProgressTasks">
+                <!-- Lista de tarefas em andamento será inserida aqui -->
+            </div>
         </div>
 
         <!-- Coluna Tarefas Concluídas -->
-        <div class="col-md-6">
+        <div class="col-md-4">
             <h5>Tarefas Concluidas</h5>
             <div class="task-list" id="completedTasks">
                 <!-- Lista de tarefas concluídas será inserida aqui -->
             </div>
         </div>
     </div>
+
+    <!-- Botão para remover tarefas selecionadas -->
+    <button id="deleteButton" class="btn btn-danger mt-3" disabled>Remover</button>
 
     <!-- Caixa de confirmação -->
     <div id="confirmationBox" class="mt-4 d-none">
@@ -72,10 +83,10 @@
 </div>
 
 <script>
-    // Referências aos elementos HTML
     const addTaskForm = document.getElementById('addTaskForm');
     const newTaskInput = document.getElementById('newTaskInput');
     const pendingTasks = document.getElementById('pendingTasks');
+    const inProgressTasks = document.getElementById('inProgressTasks');
     const completedTasks = document.getElementById('completedTasks');
     const deleteButton = document.getElementById('deleteButton');
     const confirmationBox = document.getElementById('confirmationBox');
@@ -84,7 +95,7 @@
 
     let selectedTasks = [];
 
-    // Função para adicionar uma nova tarefa
+    // Função para adicionar nova tarefa
     addTaskForm.addEventListener('submit', function (e) {
         e.preventDefault();
         const taskText = newTaskInput.value.trim();
@@ -94,30 +105,33 @@
         }
     });
 
-    // Função para adicionar uma tarefa na lista de pendentes
     function addTaskToPending(taskText) {
-        const taskItem = createTaskItem(taskText);
+        const taskItem = createTaskItem(taskText, 'pending');
         pendingTasks.appendChild(taskItem);
     }
 
-    // Função para criar um item de tarefa com botões de "Concluir" e "Selecionar"
-    function createTaskItem(taskText) {
+    // Função para criar o item da tarefa com botões de "Mover" e "Selecionar"
+    function createTaskItem(taskText, status) {
         const taskItem = document.createElement('div');
         taskItem.className = 'd-flex justify-content-between align-items-center mb-2 task-item';
         taskItem.innerHTML = `
             <span>${taskText}</span>
             <div>
-                <button class="btn btn-success btn-sm me-2 complete-task">Concluir</button>
-                <button class="btn btn-warning btn-sm select-task">Selecionar</button>
+                <button class="btn btn-${status === 'pending' ? 'warning' : 'success'} btn-sm me-2">
+                    ${status === 'pending' ? 'Andamento' : 'Concluir'}
+                </button>
+                <button class="btn btn-danger btn-sm select-task">Selecionar</button>
             </div>
         `;
 
-        // Evento para concluir a tarefa
-        taskItem.querySelector('.complete-task').addEventListener('click', function () {
-            completeTask(taskItem);
+        taskItem.querySelector('.btn-sm.me-2').addEventListener('click', function () {
+            if (status === 'pending') {
+                moveTaskToInProgress(taskItem, taskText);
+            } else {
+                completeTask(taskItem);
+            }
         });
 
-        // Evento para selecionar/desselecionar a tarefa
         taskItem.querySelector('.select-task').addEventListener('click', function () {
             toggleSelectTask(taskItem);
         });
@@ -125,14 +139,21 @@
         return taskItem;
     }
 
-    // Função para marcar uma tarefa como concluída
-    function completeTask(taskItem) {
-        completedTasks.appendChild(taskItem);
-        taskItem.querySelector('.complete-task').remove(); // Remove botão "Concluir"
-        taskItem.querySelector('.select-task').remove(); // Remove botão "Selecionar"
+    // Função para mover tarefa para "Em Andamento"
+    function moveTaskToInProgress(taskItem, taskText) {
+        taskItem.remove();
+        const newTaskItem = createTaskItem(taskText, 'inProgress');
+        inProgressTasks.appendChild(newTaskItem);
     }
 
-    // Função para alternar a seleção de uma tarefa
+    // Função para mover tarefa para "Concluído"
+    function completeTask(taskItem) {
+        completedTasks.appendChild(taskItem);
+        taskItem.querySelector('.btn-sm.me-2').remove(); // Remove botão de mover
+        taskItem.querySelector('.select-task').remove(); // Remove botão de selecionar
+    }
+
+    // Função para selecionar/desmarcar tarefas
     function toggleSelectTask(taskItem) {
         if (taskItem.classList.contains('selected')) {
             taskItem.classList.remove('selected');
@@ -144,12 +165,10 @@
         deleteButton.disabled = selectedTasks.length === 0;
     }
 
-    // Função para exibir a caixa de confirmação ao clicar em "Remover Selecionados"
     deleteButton.addEventListener('click', function () {
         confirmationBox.classList.remove('d-none');
     });
 
-    // Função para confirmar a remoção das tarefas selecionadas
     confirmDelete.addEventListener('click', function () {
         selectedTasks.forEach(task => task.remove());
         selectedTasks = [];
@@ -157,7 +176,6 @@
         deleteButton.disabled = true;
     });
 
-    // Função para cancelar a remoção das tarefas selecionadas
     cancelDelete.addEventListener('click', function () {
         selectedTasks.forEach(task => task.classList.remove('selected'));
         selectedTasks = [];
@@ -167,8 +185,6 @@
 </script>
 
 </body>
-
 </html>
-
 
 
