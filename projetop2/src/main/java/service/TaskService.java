@@ -1,15 +1,17 @@
 package service;
 
-import model.Task;
-import repository.TaskRepository;
+import models.Task;
+import org.springframework.beans.factory.annotation.Autowired;
+import repositories.TaskRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 public class TaskService {
-
+    @Autowired
     private final TaskRepository taskRepository;
 
     public TaskService(TaskRepository taskRepository) {
@@ -23,8 +25,14 @@ public class TaskService {
 
     // Salva uma nova tarefa
     public Task save(Task task) {
+
+        if (task.getId() == null) {
+            task.setCreatedAt(Instant.now());
+        }
+        task.setUpdateAt(Instant.now());
         return taskRepository.save(task);
     }
+
 
     // Busca uma tarefa por ID
     public Optional<Task> findById(Long id) {

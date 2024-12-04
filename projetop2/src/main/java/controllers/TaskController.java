@@ -1,12 +1,14 @@
-package controller;
+package controllers;
 
-import model.Task;
+import models.Task;
 import service.TaskService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 @Controller
+
+@RequestMapping("/")
 public class TaskController {
 
     private final TaskService taskService;
@@ -16,6 +18,8 @@ public class TaskController {
     }
 
     @GetMapping("/")
+
+
     public String index(Model model) {
         model.addAttribute("tasks", taskService.findAll());
         model.addAttribute("newTask", new Task());
