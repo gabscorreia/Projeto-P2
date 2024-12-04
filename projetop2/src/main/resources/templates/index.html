@@ -38,12 +38,25 @@
             z-index: 1000;
             white-space: nowrap;
         }
+
+        .task-info-box input,
+        .task-info-box select {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+
+        #confirmationBox {
+            display: none;
+        }
     </style>
 </head>
 
 <body>
 
 <div class="container">
+    <br>
+    <br>
+    <br>
     <h1 class="my-4">Lista de Tarefas</h1>
 
     <!-- Formulário para adicionar nova tarefa -->
@@ -52,17 +65,17 @@
             <input type="text" id="newTaskInput" class="form-control" placeholder="Nova Tarefa" required />
         </div>
         <div class="input-group mb-3">
-            <input type="text" id="taskDescription" class="form-control" placeholder="Descrição da Tarefa" required />
+            <input type="text" id="taskDescription" class="form-control" placeholder="Descricao da Tarefa" required />
         </div>
         <div class="input-group mb-3">
-            <input type="text" id="taskResponsible" class="form-control" placeholder="Nome do Responsável" required />
+            <input type="text" id="taskResponsible" class="form-control" placeholder="Nome do Responsavel" required />
         </div>
         <div class="mb-3">
             <label class="form-label">Prioridade:</label>
             <div>
-                <input type="radio" name="priority" value="Alto" required> Nível Alto
-                <input type="radio" name="priority" value="Médio"> Nível Médio
-                <input type="radio" name="priority" value="Baixo"> Nível Baixo
+                <input type="radio" name="priority" value="Alto" required> Nivel Alto
+                <input type="radio" name="priority" value="Médio"> Nivel Medio
+                <input type="radio" name="priority" value="Baixo"> Nivel Baixo
             </div>
         </div>
         <button type="submit" class="btn btn-primary">Adicionar</button>
@@ -78,14 +91,21 @@
             <div class="task-list" id="inProgressTasks"></div>
         </div>
         <div class="col-md-4">
-            <h5>Tarefas Concluídas</h5>
+            <h5>Tarefas Concluidas</h5>
             <div class="task-list" id="completedTasks"></div>
         </div>
     </div>
 
+    <!-- Botão para remover tarefas selecionadas -->
     <button id="deleteButton" class="btn btn-danger mt-3" disabled>Remover</button>
-</div>
 
+    <!-- Caixa de confirmação -->
+    <div id="confirmationBox" class="mt-4">
+        <h6>Deseja remover as tarefas selecionadas?</h6>
+        <button id="confirmDelete" class="btn btn-danger">Sim</button>
+        <button id="cancelDelete" class="btn btn-secondary">Nao</button>
+    </div>
+</div>
 <div class="task-info-box" id="taskInfoBox"></div>
 
 <script>
@@ -97,20 +117,23 @@
     const inProgressTasks = document.getElementById('inProgressTasks');
     const completedTasks = document.getElementById('completedTasks');
     const deleteButton = document.getElementById('deleteButton');
+    const confirmationBox = document.getElementById('confirmationBox');
+    const confirmDelete = document.getElementById('confirmDelete');
+    const cancelDelete = document.getElementById('cancelDelete');
     const taskInfoBox = document.getElementById('taskInfoBox');
 
     let selectedTasks = [];
 
-    // Função para adicionar nova tarefa
+    // Adiciona uma nova tarefa pendente
     addTaskForm.addEventListener('submit', function (e) {
         e.preventDefault();
         const taskText = newTaskInput.value.trim();
-        const descriptionText = taskDescription.value.trim();
-        const responsibleText = taskResponsible.value.trim();
+        const description = taskDescription.value.trim();
+        const responsible = taskResponsible.value.trim();
         const priority = document.querySelector('input[name="priority"]:checked').value;
 
-        if (taskText && descriptionText && responsibleText) {
-            addTaskToPending(taskText, descriptionText, responsibleText, priority);
+        if (taskText && description && responsible && priority) {
+            addTaskToPending(taskText, description, responsible, priority);
             newTaskInput.value = '';
             taskDescription.value = '';
             taskResponsible.value = '';
@@ -122,16 +145,33 @@
         pendingTasks.appendChild(taskItem);
     }
 
+    // Cria o item da tarefa com botões de ação
     function createTaskItem(taskText, description, responsible, priority, status) {
         const taskItem = document.createElement('div');
         taskItem.className = 'd-flex justify-content-between align-items-center mb-2 task-item';
         taskItem.innerHTML = `
             <span>${taskText}</span>
             <div>
-                <button class="btn btn-warning btn-sm me-2">Andamento</button>
+                <button class="btn btn-${status === 'pending' ? 'warning' : 'success'} btn-sm me-2">
+                    ${status === 'pending' ? 'Andamento' : 'Concluir'}
+                </button>
                 <button class="btn btn-danger btn-sm select-task">Selecionar</button>
             </div>
         `;
+
+        // Botão "Andamento" -> Move entre pendente, em andamento e concluído
+        taskItem.querySelector('.btn-sm.me-2').addEventListener('click', function () {
+            if (status === 'pending') {
+                moveTaskToInProgress(taskItem, taskText, description, responsible, priority);
+            } else if (status === 'inProgress') {
+                completeTask(taskItem, taskText, description, responsible, priority);
+            }
+        });
+
+        // Botão "Selecionar" -> Marca/desmarca a tarefa como selecionada
+        taskItem.querySelector('.select-task').addEventListener('click', function () {
+            toggleSelectTask(taskItem);
+        });
 
         taskItem.addEventListener('mouseenter', function (event) {
             showTaskInfo(event, description, responsible, priority);
@@ -144,10 +184,55 @@
         return taskItem;
     }
 
+    // Mover tarefa para "Em Andamento"
+    function moveTaskToInProgress(taskItem, taskText, description, responsible, priority) {
+        taskItem.remove();
+        const newTaskItem = createTaskItem(taskText, description, responsible, priority, 'inProgress');
+        inProgressTasks.appendChild(newTaskItem);
+    }
+
+    // Mover tarefa para "Concluído"
+    function completeTask(taskItem, taskText, description, responsible, priority) {
+        taskItem.remove();
+        const completedTaskItem = createTaskItem(taskText, description, responsible, priority, 'completed');
+        completedTasks.appendChild(completedTaskItem);
+        completedTaskItem.querySelector('.btn-sm.me-2').remove(); // Remove botão "Mover"
+        completedTaskItem.querySelector('.select-task').remove(); // Remove botão "Selecionar"
+    }
+
+    // Selecionar ou desmarcar uma tarefa
+    function toggleSelectTask(taskItem) {
+        if (taskItem.classList.contains('selected')) {
+            taskItem.classList.remove('selected');
+            selectedTasks = selectedTasks.filter(t => t !== taskItem);
+        } else {
+            taskItem.classList.add('selected');
+            selectedTasks.push(taskItem);
+        }
+        deleteButton.disabled = selectedTasks.length === 0;
+    }
+
+    // Remover tarefas selecionadas
+    deleteButton.addEventListener('click', function () {
+        confirmationBox.style.display = 'block';
+    });
+
+    confirmDelete.addEventListener('click', function () {
+        selectedTasks.forEach(task => task.remove());
+        selectedTasks = [];
+        confirmationBox.style.display = 'none';
+        deleteButton.disabled = true;
+    });
+
+    cancelDelete.addEventListener('click', function () {
+        confirmationBox.style.display = 'none';
+    });
+
+    // Exibir informações da tarefa ao passar o mouse
     function showTaskInfo(event, description, responsible, priority) {
         taskInfoBox.innerHTML = `
-            <strong>Descrição:</strong> ${description}<br>
-            <strong>Responsável:</strong> ${responsible}<br>
+            <strong>Descricao:</strong> ${description}<br>
+            <strong>Responsavel:</strong> ${responsible}<br>
             <strong>Prioridade:</strong> ${priority}
         `;
         taskInfoBox.style.left = `${event.pageX + 15}px`;
@@ -156,7 +241,6 @@
     }
 </script>
 
+
 </body>
 </html>
-
-
